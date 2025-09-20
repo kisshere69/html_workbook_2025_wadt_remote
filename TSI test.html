@@ -7,22 +7,33 @@
     <link rel="stylesheet" type="text/css" href="test.css">
 </head>
 <body>
+<form class="form">
+    <div id="register">
+        <span>Sign Up /</span>
+        <span"><a href="https://www.google.com" id="have-account">Sign In</a></span>
+    </div>
 
-    <h2>GET Example</h2>
-    <form action="https://example.com/search" method="GET">
-        <label for="query">Search:</label>
-        <input type="text" id="query" name="q" placeholder="Type something...">
-        <button type="submit">Send</button>
-    </form>
- <h2>POST Example</h2>
-    <form action="https://example.com/login" method="POST">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="user">
-        <br><br>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="pass">
-        <br><br>
-        <button type="submit">Login</button>
-    </form>
+            First name: <input type="text" name="FirstName"><br>
+            Last name: <input type="text" name="LastName"><br>
+            Date of Birth: <input type="date" name="Date of Birth"><br>
+            Gender: <input name="Gender" type="radio">Male<input name="Gender" type="radio">Female<br>
+            Country: <select type ="radio" name="Country">
+            <option value="Select">---</option>
+                <option value="India">India</option>
+                <option value="USA">USA</option>
+                <option value="UK">UK</option>
+                <option value="Canada">Canada</option>
+                <option value="Australia">Australia</option><br>
+            </select><br>
+            Email: <input type="email" name="Email"><br>
+            Mobile number: <input type="tel" name="MobileNumber" pattern="[0-20]{20}"><br>
+            Password: <input type="password" name="Password"><br>
+            Confirm Password: <input type="password" name="ConfirmPassword"><br>
+
+            <input type="checkbox" name="Terms">I agree to the Terms and Conditions<br>
+            <input type="checkbox" name="Terms">I agree to receive product updates and notifications<br>
+            <input type="submit" value="Submit">
+            <input type="reset" value="Reset">
+</form>
 </body>
 </html>
