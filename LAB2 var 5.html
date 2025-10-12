@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <title>Lab Variant 5 — Syntax Highlighter</title>
+
+  <link id="themeCSS" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" />
+
+  <!-- styling -->
+  <style>
+    :root{
+      --bg-dark: linear-gradient(180deg,#071029 0%, #071b2a 60%);
+      --text-dark: #e6eef6;
+      --bg-light: #f5f6fa;
+      --text-light: #111827;
+      --accent:#06b6d4;
+      --muted-dark:#9fb2c8;
+      --muted-light:#4b5563;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;min-height:100vh;display:flex;align-items:stretch;transition:background 0.4s ease,color 0.4s ease;}
+    .app{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:28px}
+    header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    h1{font-size:18px;margin:0}
+    .controls{display:flex;gap:8px;align-items:center}
+    select,button{background:transparent;border:1px solid rgba(255,255,255,0.1);padding:8px 10px;border-radius:8px;cursor:pointer;transition:0.2s}
+    button:hover,select:hover{border-color:var(--accent)}
+    .panel{border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(3,6,14,0.5);min-height:60vh;display:flex;flex-direction:column;transition:background 0.4s ease}
+    .editor, .preview{height:100%;display:flex;flex-direction:column}
+    textarea#editor{flex:1;width:100%;resize:none;padding:16px;border-radius:8px;border:1px dashed rgba(255,255,255,0.04);background:transparent;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;font-size:14px;line-height:1.5}
+    pre#preview{flex:1;margin:0;padding:16px;border-radius:8px;overflow:auto}
+    .meta{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px}
+    .hint{font-size:13px}
+    .actions{display:flex;gap:8px}
+    .pulse{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1.6s infinite}
+    @keyframes pulse{0%{opacity:0.2;transform:scale(0.9)}50%{opacity:1;transform:scale(1.15)}100%{opacity:0.2;transform:scale(0.9)}}
+    @media(max-width:900px){.app{grid-template-columns:1fr;padding:14px}.panel{min-height:50vh}}
+    .fade-in{animation:fadeInUp .6s ease both}
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    .toast{position:fixed;right:22px;bottom:22px;padding:10px 14px;border-radius:10px;box-shadow:0 8px 30px rgba(2,6,12,0.6);display:none}
+  </style>
+</head>
+
+<!-- functionality -->
+<body>
+  <div class="app">
+    <header class="fade-in">
+      <h1>Lab Variant 5 — Syntax Highlighter</h1>
+      <div class="controls">
+        <select id="langSelect" title="Choose language">
+          <option value="python" selected>Python</option>
+          <option value="javascript">JavaScript</option>
+          <option value="java">Java</option>
+          <option value="c">C</option>
+          <option value="cpp">C++</option>
+          <option value="html">HTML</option>
+        </select>
+        <button id="themeBtn">Toggle Theme</button>
+        <div class="status"><span class="pulse"></span> live highlighting</div>
+      </div>
+    </header>
+
+<!--Editor panel-->
+
+    <section class="panel editor fade-in" aria-label="Editor panel">
+      <div class="meta"><div class="hint">Type code here — syntax will be highlighted live</div>
+        <div class="actions">
+          <button id="sampleBtn">Load sample</button>
+          <button id="copyBtn">Copy</button>
+          <button id="downloadBtn">Download .txt</button>
+        </div>
+      </div>
+      <textarea id="editor" spellcheck="false" autocomplete="off"></textarea>
+    </section>
+    
+<!--Preview panel-->
+    <section class="panel preview fade-in" aria-label="Preview panel">
+      <div class="meta"><div class="hint">Preview (read-only)</div>
+      </div>
+      <pre id="preview" class="line-numbers"><code id="codeBlock" class="language-python" tabindex="0"></code></pre>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+  <script>
+    Prism.plugins.autoloader.languages_path = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/';
+
+    const editor = document.getElementById('editor');
+    const codeBlock = document.getElementById('codeBlock');
+    const preview = document.getElementById('preview');
+    const langSelect = document.getElementById('langSelect');
+    const themeBtn = document.getElementById('themeBtn');
+    const toast = document.getElementById('toast');
+    const themeCSS = document.getElementById('themeCSS');
+
+    const samples = {
+      python: `def fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        yield a\n        a, b = b, a + b\n\nprint(list(fib(10)))`,
+      javascript: `function fib(n){const res=[];let a=0,b=1;for(let i=0;i<n;i++){res.push(a);[a,b]=[b,a+b];}return res;}\nconsole.log(fib(10));`,
+      java: `public class Fib {\n  public static void main(String[] args){\n    int n=10; int a=0,b=1;\n    for(int i=0;i<n;i++){ System.out.println(a); int t=a; a=b; b=t+b; }\n  }\n}`,
+      c: `#include <stdio.h>\nint main(){ int n=10,a=0,b=1; for(int i=0;i<n;i++){ printf("%d\\n", a); int t=a; a=b; b=t+b; } return 0; }`,
+      cpp: `#include <iostream>\nusing namespace std;int main(){int n=10,a=0,b=1;for(int i=0;i<n;i++){cout<<a<<"\n";int t=a;a=b;b=t+b;}return 0;}`,
+      html: `<!doctype html>\n<html><body><h1>Hello</h1><p>Sample HTML</p></body></html>`
+    };
+
+    function sync(){
+      codeBlock.textContent = editor.value || '\n';
+      const lang = langSelect.value;
+      codeBlock.className = 'language-' + lang;
+      Prism.highlightElement(codeBlock);
+      preview.scrollTop = editor.scrollTop;
+    }
+
+    function setEditorText(text){ editor.value = text; sync(); }
+
+    function showTinyToast(msg){ toast.textContent = msg; toast.style.display='block'; toast.style.background='rgba(0,0,0,0.7)'; toast.style.color='#fff'; setTimeout(()=>{toast.style.display='none'},1500); }
+
+    editor.addEventListener('input', sync);
+    editor.addEventListener('scroll', ()=> preview.scrollTop = editor.scrollTop);
+    langSelect.addEventListener('change', ()=>{ sync(); showTinyToast('Language: '+langSelect.value) });
+
+    document.getElementById('sampleBtn').addEventListener('click', ()=>{ setEditorText(samples[langSelect.value]); showTinyToast('Loaded sample') });
+    document.getElementById('copyBtn').addEventListener('click', async ()=>{ await navigator.clipboard.writeText(editor.value); showTinyToast('Copied!') });
+    document.getElementById('downloadBtn').addEventListener('click', ()=>{
+      const blob = new Blob([editor.value], {type:'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `code-${langSelect.value}.txt`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      showTinyToast('Downloaded');
+    });
+
+    let darkMode = true;
+    function applyTheme(){
+      if(darkMode){
+        document.body.style.background = getComputedStyle(document.documentElement).getPropertyValue('--bg-dark');
+        document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-dark');
+        document.querySelectorAll('button, select').forEach(el => {
+          el.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-dark');
+          el.style.borderColor = 'rgba(255,255,255,0.1)';
+        });
+        editor.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-dark');
+        document.querySelectorAll('.panel').forEach(p=>p.style.background='rgba(255,255,255,0.02)');
+        themeCSS.href = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css';
+      } else {
+        document.body.style.background = getComputedStyle(document.documentElement).getPropertyValue('--bg-light');
+        document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-light');
+        document.querySelectorAll('button, select').forEach(el => {
+          el.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-light');
+          el.style.borderColor = 'rgba(0,0,0,0.1)';
+        });
+        editor.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-light');
+        document.querySelectorAll('.panel').forEach(p=>p.style.background='#fff');
+        themeCSS.href = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css';
+      }
+    }
+
+    themeBtn.addEventListener('click', ()=>{ darkMode = !darkMode; applyTheme(); showTinyToast(darkMode?'Dark theme':'Light theme'); });
+
+    // Initial setup
+    window.addEventListener('load', ()=>{ setEditorText(samples.python); applyTheme(); });
+  </script>
+</body>
+</html>
